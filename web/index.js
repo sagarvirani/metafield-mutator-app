@@ -80,7 +80,7 @@ app.get("/api/products/create/:collectionId", async (_req, res) => {
       //console.log("old product data6678=",productData.body.products);
 
       const linkHeader = productData.headers["Link"];
-      console.log("link header8777=",linkHeader);
+      console.log("link header87776=",linkHeader);
       
       nextPageInfo = extractPageInfo(linkHeader);
       //console.log("hhh=",nextPageInfo);

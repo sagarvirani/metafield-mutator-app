@@ -77,20 +77,17 @@ app.get("/api/products/create/:collectionId", async (_req, res) => {
       prod = productData.body.products;
       productArray = productArray.concat(prod);
       
-      //console.log("old product data6678=",productData.body.products);
-
       const linkHeader = productData.headers["Link"];
-      console.log("link header87776=",linkHeader);
-      
+      //console.log("link header =",linkHeader);
       nextPageInfo = extractPageInfo(linkHeader);
-      //console.log("hhh=",nextPageInfo);
+      //console.log("next page information =",nextPageInfo);
 
-      if(nextPageInfo == null || c == 4) {
+      if(nextPageInfo == null) {
         break;
       }
       else {
         const nextPageUrl = `${pathVarialbe}?limit=${productsPerPage}&page_info=${nextPageInfo}`;
-        //console.log("next page url89077=", nextPageUrl);
+        //console.log("next page url=", nextPageUrl);
         
         productData = await client.get({
           path: nextPageUrl,
@@ -100,9 +97,8 @@ app.get("/api/products/create/:collectionId", async (_req, res) => {
           }
         });
       }
-      c++;
-      //console.log("next product data6678=",productData.body.products);
     }
+
     // Update the metafield for each product
     console.log("Updating the following products:");
     const updatedProducts = await Promise.all(
@@ -118,7 +114,7 @@ app.get("/api/products/create/:collectionId", async (_req, res) => {
             },
           },
         });
-        console.log("Product ID & Title789:",product.id, product.title);
+        console.log("Product ID & Title:", product.id, product.title);
         return updatedProduct;
       })
     );
@@ -135,24 +131,23 @@ function extractPageInfo(linkHeader) {
   if (!linkHeader || linkHeader.length === 0) {
     return null;
   }
-  //console.log("link2345=",linkHeader);
+
+  const link = linkHeader.toString().split(',');
   const relRegex = /rel="next"/;
   const pageInfoRegex = /page_info=([^&>]+)/;
-  for (const link of linkHeader) {
-    if (relRegex.test(link)) {
-      const match = pageInfoRegex.exec(link);
+  
+  for(let i=0; i < link.length; i++){
+    if (relRegex.test(link[i])) {
+      //console.log("link with rel=next",link[i]);
+      const match = pageInfoRegex.exec(link[i]) ;
       if (match) {
-        //console.log("match2789=", match[0]);
-        //console.log("match2789=", match[1]);
         return match[1];
       }
     }
   }
-
+  
   return null;
 }
-
-
 
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));

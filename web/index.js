@@ -1,6 +1,6 @@
 // @ts-check
 import { join } from "path";
-import { readFileSync } from "fs";
+import { link, readFileSync } from "fs";
 
 import express from "express";
 import serveStatic from "serve-static";
@@ -58,44 +58,51 @@ app.get("/api/products/create/:collectionId", async (_req, res) => {
     
     let collectionId = _req.params.collectionId;
     let pathVarialbe = `/collections/${collectionId}/products.json`;
-    const limit = 3;
+    const productsPerPage = 1;
     
     let productData = await client.get({
       path: pathVarialbe,
       query: { 
-        limit,
+        limit: productsPerPage,
       }
     });
     
     let productArray = [];
     let nextPageInfo = null;
+    let prod;
+    let c = 0;
 
     while(true) {
-        
-      const products = productData.body.products;
-      productArray = productArray.concat(products);
+      
+      prod = productData.body.products;
+      productArray = productArray.concat(prod);
+      
+      //console.log("old product data6678=",productData.body.products);
 
       const linkHeader = productData.headers["Link"];
-      console.log("link header=",linkHeader);
+      console.log("link header8777=",linkHeader);
       
       nextPageInfo = extractPageInfo(linkHeader);
-      console.log("next page url=", nextPageInfo);
-      
-      if (!nextPageInfo) {
+      //console.log("hhh=",nextPageInfo);
+
+      if(nextPageInfo == null || c == 4) {
         break;
       }
       else {
+        const nextPageUrl = `${pathVarialbe}?limit=${productsPerPage}&page_info=${nextPageInfo}`;
+        //console.log("next page url89077=", nextPageUrl);
+        
         productData = await client.get({
-          path: pathVarialbe,
+          path: nextPageUrl,
           query: { 
-            limit: 2,
+            limit: productsPerPage,
             page_info: nextPageInfo,
           }
         });
       }
-      
-    } 
-
+      c++;
+      //console.log("next product data6678=",productData.body.products);
+    }
     // Update the metafield for each product
     console.log("Updating the following products:");
     const updatedProducts = await Promise.all(
@@ -111,8 +118,7 @@ app.get("/api/products/create/:collectionId", async (_req, res) => {
             },
           },
         });
-        console.log("Product ID:",product.id);
-        console.log("Product Title:",product.title);
+        console.log("Product ID & Title789:",product.id, product.title);
         return updatedProduct;
       })
     );
@@ -124,21 +130,28 @@ app.get("/api/products/create/:collectionId", async (_req, res) => {
   }
 });
 
-// Extracts the next page URL from the Link header
 // Extracts the 'page_info' parameter from the Link header
 function extractPageInfo(linkHeader) {
-  if (!linkHeader) {
+  if (!linkHeader || linkHeader.length === 0) {
     return null;
   }
-
+  //console.log("link2345=",linkHeader);
+  const relRegex = /rel="next"/;
   const pageInfoRegex = /page_info=([^&>]+)/;
-  const match = pageInfoRegex.exec(linkHeader);
-  if (match) {
-    return match[1];
+  for (const link of linkHeader) {
+    if (relRegex.test(link)) {
+      const match = pageInfoRegex.exec(link);
+      if (match) {
+        //console.log("match2789=", match[0]);
+        //console.log("match2789=", match[1]);
+        return match[1];
+      }
+    }
   }
 
   return null;
 }
+
 
 
 app.use(shopify.cspHeaders());
